@@ -13,7 +13,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    // Vrni, kar bo v req.user
-    return { userId: payload.sub, email: payload.email };
+    // Dodamo tudi isAdmin lastnost v objekt, ki bo na voljo v req.user
+    return { userId: payload.sub, email: payload.email, isAdmin: payload.isAdmin };
   }
 }

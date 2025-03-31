@@ -24,7 +24,6 @@ export class AuthService {
       firstName: dto.firstName,
       lastName: dto.lastName,
       birthDate: dto.birthDate,
-      // avatar se posodablja kasneje
     });
     return { message: 'Registration successful', user };
   }
@@ -38,7 +37,8 @@ export class AuthService {
     if (!isMatch) {
       throw new UnauthorizedException('Invalid credentials');
     }
-    const payload = { sub: user.id, email: user.email };
+    // Vključimo tudi isAdmin v payload
+    const payload = { sub: user.id, email: user.email, isAdmin: user.isAdmin };
     const token = await this.jwtService.signAsync(payload);
     return { message: 'Login successful', token };
   }

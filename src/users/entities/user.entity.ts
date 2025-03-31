@@ -27,6 +27,10 @@ export class User {
   @Column({ nullable: true })
   avatar?: string;
 
+  // Novo polje za označevanje administratorja
+  @Column({ default: false })
+  isAdmin: boolean;
+
   @OneToMany(() => Rating, (rating) => rating.user)
   ratings: Rating[];
 

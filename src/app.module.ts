@@ -23,6 +23,7 @@ import { Ingredient } from './ingredients/entities/ingredient.entity';
 import { Category } from './categories/entities/category.entity';
 import { Rating } from './ratings/entities/rating.entity';
 import { Comment } from './comments/entities/comment.entity';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { Comment } from './comments/entities/comment.entity';
     CategoriesModule,
     RatingsModule,
     CommentsModule,
+    AdminModule
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -34,7 +34,7 @@ export class Recipe {
   @OneToMany(() => Comment, comment => comment.recipe, { cascade: true })
   comments: Comment[];
 
-  // Avtor recepta
-  @ManyToOne(() => User, user => user.recipes, { nullable: true })
+  // Avtor recepta: ko se izbriše uporabnik, se izbrišejo tudi njegovi recepti
+  @ManyToOne(() => User, user => user.recipes, { nullable: true, onDelete: 'CASCADE' })
   author?: User;
 }
