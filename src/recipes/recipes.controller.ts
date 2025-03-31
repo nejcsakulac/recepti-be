@@ -1,13 +1,12 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, UseInterceptors, UploadedFile, Req } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer'; // NE iz '@nestjs/platform-express'
+import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RecipesService } from './recipes.service';
 import { CreateRecipeDto } from './dto/create-recipe.dto';
 import { UpdateRecipeDto } from './dto/update-recipe.dto';
-// Predpostavimo, da imaš userService, da pridobiš userja, če req.user ni celoten user
 import { UsersService } from '../users/users.service';
 
 @UseGuards(JwtAuthGuard)
@@ -15,13 +14,15 @@ import { UsersService } from '../users/users.service';
 export class RecipesController {
   constructor(
     private readonly recipesService: RecipesService,
-    private readonly usersService: UsersService, // Morda potrebuješ
+    private readonly usersService: UsersService,
   ) {}
 
-  // 1) Navaden create
+  // 1) Navaden create (z avtorjem)
   @Post()
-  create(@Body() createRecipeDto: CreateRecipeDto) {
-    return this.recipesService.create(createRecipeDto);
+  async create(@Body() createRecipeDto: CreateRecipeDto, @Req() req) {
+    const userId = req.user.userId;
+    const author = await this.usersService.findOne(userId);
+    return this.recipesService.createWithAuthor(createRecipeDto, author);
   }
 
   // 2) Create with image + avtor
@@ -36,7 +37,6 @@ export class RecipesController {
     }),
   }))
   async createWithImage(@UploadedFile() file: Express.Multer.File, @Req() req) {
-    // parse polja iz formData
     const { title, description, steps, categoryId, categoryName, ingredients } = JSON.parse(req.body.jsonData);
 
     const createRecipeDto: CreateRecipeDto = {
@@ -48,12 +48,9 @@ export class RecipesController {
       ingredients,
     };
 
-    // Pridobimo userja.
-    // Če tvoj JWTStrategy vrne: req.user = { userId: 5 } => poiščemo userja v bazi
     const userId = req.user.userId;
-    const author = await this.usersService.findOne(userId); // ali findById
+    const author = await this.usersService.findOne(userId);
 
-    // Ustvarimo recept z avtorjem
     const recipe = await this.recipesService.createWithAuthor(createRecipeDto, author);
 
     if (file) {
@@ -61,6 +58,13 @@ export class RecipesController {
     }
 
     return { message: 'Recipe created with image', recipeId: recipe.id };
+  }
+
+  // NOV: Vrni recepte trenutnega uporabnika
+  @Get('my')
+  async findMyRecipes(@Req() req) {
+    const userId = req.user.userId;
+    return this.recipesService.findByAuthor(userId);
   }
 
   @Get('top')
@@ -81,13 +85,31 @@ export class RecipesController {
     return this.recipesService.findOne(Number(id));
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateRecipeDto: UpdateRecipeDto) {
-    return this.recipesService.update(Number(id), updateRecipeDto);
+  // NOV: Update recept z možnostjo prenosa nove slike preko multipart FormData
+  @Patch('edit/:id')
+  @UseInterceptors(FileInterceptor('image', {
+    storage: diskStorage({
+      destination: './uploads',
+      filename: (req, file, callback) => {
+        const randomName = uuidv4() + extname(file.originalname);
+        callback(null, randomName);
+      },
+    }),
+  }))
+  async update(@UploadedFile() file: Express.Multer.File, @Req() req, @Param('id') id: string) {
+    const userId = req.user.userId;
+    // Preberemo jsonData, ki vsebuje ostala polja recepta
+    const updateRecipeDto: UpdateRecipeDto = JSON.parse(req.body.jsonData);
+    if (file) {
+      // Če je prenesena nova slika, jo dodamo v DTO
+      updateRecipeDto.image = file.filename;
+    }
+    return this.recipesService.update(Number(id), updateRecipeDto, userId);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.recipesService.remove(Number(id));
+  remove(@Param('id') id: string, @Req() req) {
+    const userId = req.user.userId;
+    return this.recipesService.remove(Number(id), userId);
   }
 }

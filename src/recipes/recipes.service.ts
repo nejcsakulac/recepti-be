@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Recipe } from './entities/recipe.entity';
@@ -22,7 +22,7 @@ export class RecipesService {
       title: createRecipeDto.title,
       description: createRecipeDto.description,
       steps: createRecipeDto.steps,
-      // tu se že zapišejo ingredients, ker je cascade: true
+      // ingredients se že zapišejo zaradi cascade: true
       ingredients: createRecipeDto.ingredients,
     });
 
@@ -80,7 +80,6 @@ export class RecipesService {
     await this.recipeRepository.save(recipe);
   }
 
-  // Ostalo
   async findTop(limit: number): Promise<any[]> {
     return this.recipeRepository
       .createQueryBuilder('recipe')
@@ -93,7 +92,7 @@ export class RecipesService {
         'COALESCE(AVG(rating.value), 0) as avgRating',
       ])
       .groupBy('recipe.id')
-      .addGroupBy('recipe.image') // dodano, da ne javi napake group by
+      .addGroupBy('recipe.image')
       .orderBy('avgRating', 'DESC')
       .limit(limit)
       .getRawMany();
@@ -134,12 +133,28 @@ export class RecipesService {
     return recipe;
   }
 
-  async update(id: number, updateRecipeDto: UpdateRecipeDto): Promise<Recipe> {
-    await this.recipeRepository.update(id, updateRecipeDto);
-    return this.findOne(id);
+  // Nova metoda za iskanje receptov trenutnega uporabnika
+  async findByAuthor(userId: number): Promise<Recipe[]> {
+    return this.recipeRepository.find({
+      where: { author: { id: userId } },
+      relations: ['ingredients', 'category', 'ratings', 'comments', 'comments.user', 'author'],
+    });
   }
 
-  async remove(id: number): Promise<void> {
+  async update(id: number, updateRecipeDto: UpdateRecipeDto, userId: number): Promise<Recipe> {
+    const recipe = await this.findOne(id);
+    if (!recipe.author || recipe.author.id !== userId) {
+      throw new ForbiddenException('You are not allowed to update this recipe');
+    }
+    Object.assign(recipe, updateRecipeDto);
+    return this.recipeRepository.save(recipe);
+  }
+
+  async remove(id: number, userId: number): Promise<void> {
+    const recipe = await this.findOne(id);
+    if (!recipe.author || recipe.author.id !== userId) {
+      throw new ForbiddenException('You are not allowed to delete this recipe');
+    }
     await this.recipeRepository.delete(id);
   }
 }

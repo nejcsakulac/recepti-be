@@ -29,7 +29,6 @@ export class CreateRecipeDto {
   @IsOptional()
   categoryName?: string;
 
-  // Lahko bi imeli image?: string; če želiš
   @IsOptional()
   image?: string;
 }
