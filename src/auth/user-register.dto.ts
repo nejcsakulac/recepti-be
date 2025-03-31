@@ -18,6 +18,4 @@ export class UserRegisterDto {
   @IsDateString()
   birthDate?: string;
 
-  @IsOptional()
-  avatar?: string;
 }

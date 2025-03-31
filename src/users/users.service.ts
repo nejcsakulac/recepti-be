@@ -35,11 +35,19 @@ export class UsersService {
   }
 
   async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
-    await this.userRepository.update(id, updateUserDto);
-    return this.findOne(id);
+    const user = await this.findOne(id);
+    if (updateUserDto.firstName !== undefined) user.firstName = updateUserDto.firstName;
+    if (updateUserDto.lastName !== undefined) user.lastName = updateUserDto.lastName;
+    if (updateUserDto.birthDate !== undefined) user.birthDate = updateUserDto.birthDate;
+    // avatar se posodablja v updateAvatar
+    return this.userRepository.save(user);
   }
 
   async remove(id: number): Promise<void> {
     await this.userRepository.delete(id);
+  }
+
+  async save(user: User): Promise<User> {
+    return this.userRepository.save(user);
   }
 }

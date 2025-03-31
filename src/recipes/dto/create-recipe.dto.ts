@@ -15,11 +15,21 @@ export class CreateRecipeDto {
 
   @IsOptional()
   @IsArray()
+  steps?: string[];
+
+  @IsOptional()
+  @IsArray()
   @ValidateNested({ each: true })
   @Type(() => IngredientDto)
   ingredients?: IngredientDto[];
 
-  // Opcijsko: id kategorije (če želiš dodati recept k obstoječi kategoriji)
   @IsOptional()
   categoryId?: number;
+
+  @IsOptional()
+  categoryName?: string;
+
+  // Lahko bi imeli image?: string; če želiš
+  @IsOptional()
+  image?: string;
 }

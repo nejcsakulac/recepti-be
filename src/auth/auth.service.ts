@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, NotFoundException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { UserRegisterDto } from './user-register.dto';
 import { UserLoginDto } from './user-login.dto';
@@ -24,7 +24,7 @@ export class AuthService {
       firstName: dto.firstName,
       lastName: dto.lastName,
       birthDate: dto.birthDate,
-      avatar: dto.avatar,
+      // avatar se posodablja kasneje
     });
     return { message: 'Registration successful', user };
   }
@@ -41,5 +41,16 @@ export class AuthService {
     const payload = { sub: user.id, email: user.email };
     const token = await this.jwtService.signAsync(payload);
     return { message: 'Login successful', token };
+  }
+
+  async updateAvatar(userId: number, filename: string) {
+    console.log('updateAvatar called with userId:', userId, 'filename:', filename);
+    const user = await this.usersService.findOne(userId);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+    user.avatar = filename;
+    const updatedUser = await this.usersService.save(user);
+    console.log('User updated with new avatar:', updatedUser);
   }
 }
